@@ -1,148 +1,220 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
+let currentInstrument=null
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+const popup=document.getElementById("popup")
+const instrumentMenu=document.getElementById("instrument-menu")
+const tunerBar=document.getElementById("tuner-bar")
+const cursor=document.getElementById("tuner-cursor")
+const noteDisplay=document.getElementById("note-display")
 
-<title>Acadie Tuner</title>
+const guitarNotes=[
+{note:"E",freq:82.41},
+{note:"A",freq:110},
+{note:"D",freq:146.83},
+{note:"G",freq:196},
+{note:"B",freq:246.94},
+{note:"E",freq:329.63}
+]
 
-<style>
+const ukuleleNotes=[
+{note:"G",freq:196},
+{note:"C",freq:261.63},
+{note:"E",freq:329.63},
+{note:"A",freq:440}
+]
 
-body{
-font-family:sans-serif;
-background:#a9a9a9;
-margin:0;
-padding:0;
-text-align:center;
+function renderNotes(instrument){
+
+noteDisplay.innerHTML=""
+
+let notes=instrument==="ukulele"?ukuleleNotes:guitarNotes
+
+notes.forEach(n=>{
+
+let el=document.createElement("span")
+
+el.className="note"
+
+el.textContent=n.note
+
+noteDisplay.appendChild(el)
+
+})
+
 }
 
-/* POPUP */
+document.getElementById("btn-start").onclick=()=>{
 
-#popup{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.6);
-display:flex;
-align-items:center;
-justify-content:center;
+popup.style.display="none"
+
+instrumentMenu.style.display="block"
+
 }
 
-#popup-content{
-background:#d77b7b;
-padding:20px;
-border-radius:10px;
+document.getElementById("btn-guitare").onclick=()=>{
+
+currentInstrument="guitare"
+
+tunerBar.style.display="block"
+
+renderNotes("guitare")
+
+startTuner()
+
 }
 
-#btn-start{
-background:#e7e0e0;
-border:none;
-padding:10px 20px;
-border-radius:5px;
-cursor:pointer;
+document.getElementById("btn-ukulele").onclick=()=>{
+
+currentInstrument="ukulele"
+
+tunerBar.style.display="block"
+
+renderNotes("ukulele")
+
+startTuner()
+
 }
 
-/* MENU */
+let audioContext
+let analyser
+let dataArray
 
-#instrument-menu{
-display:none;
-margin:20px;
+async function startTuner(){
+
+if(audioContext)return
+
+audioContext=new(window.AudioContext||window.webkitAudioContext)()
+
+const stream=await navigator.mediaDevices.getUserMedia({audio:true})
+
+const source=audioContext.createMediaStreamSource(stream)
+
+analyser=audioContext.createAnalyser()
+
+analyser.fftSize=2048
+
+source.connect(analyser)
+
+dataArray=new Float32Array(analyser.fftSize)
+
+update()
+
 }
 
-#instrument-menu button{
-margin:10px;
-padding:10px 20px;
-cursor:pointer;
-border-radius:5px;
+function update(){
+
+analyser.getFloatTimeDomainData(dataArray)
+
+let freq=autoCorrelate(dataArray,audioContext.sampleRate)
+
+if(freq!==-1){
+
+let notes=currentInstrument==="ukulele"?ukuleleNotes:guitarNotes
+
+let closest=notes.reduce((a,b)=>{
+
+return Math.abs(b.freq-freq)<Math.abs(a.freq-freq)?b:a
+
+})
+
+let diff=freq-closest.freq
+
+let percent=Math.max(-1,Math.min(1,diff/closest.freq))
+
+cursor.style.left=(50+percent*50)+"%"
+
+if(Math.abs(percent)<0.02){
+
+cursor.style.background="#4CAF50"
+
 }
 
-/* TUNER */
+else if(percent<0){
 
-#tuner-bar{
-display:none;
-position:relative;
-margin:30px auto;
-background:#ebe6e6;
-height:25px;
-width:80%;
-border-radius:10px;
+cursor.style.background="#2196F3"
+
 }
 
-#tuner-cursor{
-position:absolute;
-height:25px;
-width:12px;
-background:#ff6666;
-border-radius:5px;
-left:50%;
-transform:translateX(-50%);
-transition:left 0.08s;
+else{
+
+cursor.style.background="#ff4444"
+
 }
 
-/* NOTES */
+const noteEls=document.querySelectorAll(".note")
 
-#note-display{
-margin-top:25px;
+noteEls.forEach(n=>{
+
+n.classList.remove("active")
+n.classList.remove("correct")
+
+if(n.textContent===closest.note){
+
+n.classList.add("active")
+
+if(Math.abs(percent)<0.02){
+
+n.classList.add("correct")
+
 }
 
-.note{
-display:inline-block;
-padding:8px 12px;
-margin:5px;
-background:#fb8c8c;
-border-radius:5px;
-font-weight:bold;
-font-size:20px;
 }
 
-.note.active{
-background:#ff6666;
-color:white;
+})
+
 }
 
-.note.correct{
-background:#4CAF50;
-color:white;
+requestAnimationFrame(update)
+
 }
 
-</style>
+function autoCorrelate(buf,sampleRate){
 
-</head>
+let SIZE=buf.length
 
-<body>
+let rms=0
 
-<div id="popup">
-<div id="popup-content">
+for(let i=0;i<SIZE;i++){
 
-<h2>Bienvenue sur Acadie Tuner</h2>
+rms+=buf[i]*buf[i]
 
-<p>Application créée par Martin Duguay</p>
+}
 
-<button id="btn-start">Commencer</button>
+rms=Math.sqrt(rms/SIZE)
 
-</div>
-</div>
+if(rms<0.01)return-1
 
-<div id="instrument-menu">
+let r=new Array(SIZE).fill(0)
 
-<button id="btn-guitare">Guitare acoustique</button>
+for(let i=0;i<SIZE;i++){
 
-<button id="btn-ukulele">Ukulélé</button>
+for(let j=0;j<SIZE-i;j++){
 
-</div>
+r[i]+=buf[j]*buf[j+i]
 
-<div id="tuner-bar">
+}
 
-<div id="tuner-cursor"></div>
+}
 
-</div>
+let d=0
 
-<div id="note-display"></div>
+while(r[d]>r[d+1])d++
 
-<script src="app.js"></script>
+let maxval=-1
+let maxpos=-1
 
-</body>
-</html>
+for(let i=d;i<SIZE;i++){
+
+if(r[i]>maxval){
+
+maxval=r[i]
+maxpos=i
+
+}
+
+}
+
+if(maxpos===-1)return-1
+
+return sampleRate/maxpos
+
+}
