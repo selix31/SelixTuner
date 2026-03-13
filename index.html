@@ -7,11 +7,16 @@
 
 <title>Acadie Tuner</title>
 
+<!-- PWA / Icône -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<meta name="theme-color" content="#ff6666">
+
 <style>
 
 body{
 font-family:sans-serif;
-background:#a9a9a9;
+background:#858585;
 margin:0;
 padding:0;
 text-align:center;
@@ -32,13 +37,13 @@ justify-content:center;
 }
 
 #popup-content{
-background:#d77b7b;
+background:#fff;
 padding:20px;
 border-radius:10px;
 }
 
 #btn-start{
-background:#e7e0e0;
+background:#ff9999;
 border:none;
 padding:10px 20px;
 border-radius:5px;
@@ -65,7 +70,7 @@ border-radius:5px;
 display:none;
 position:relative;
 margin:30px auto;
-background:#ebe6e6;
+background:#ddd;
 height:25px;
 width:80%;
 border-radius:10px;
@@ -92,7 +97,7 @@ margin-top:25px;
 display:inline-block;
 padding:8px 12px;
 margin:5px;
-background:#fb8c8c;
+background:#ff8888;
 border-radius:5px;
 font-weight:bold;
 font-size:20px;
@@ -114,32 +119,29 @@ color:white;
 
 <body>
 
+<!-- Pop-up de bienvenue -->
 <div id="popup">
 <div id="popup-content">
 
 <h2>Bienvenue sur Acadie Tuner</h2>
-
 <p>Application créée par Martin Duguay</p>
-
 <button id="btn-start">Commencer</button>
 
 </div>
 </div>
 
+<!-- Menu des instruments -->
 <div id="instrument-menu">
-
 <button id="btn-guitare">Guitare acoustique</button>
-
 <button id="btn-ukulele">Ukulélé</button>
-
 </div>
 
+<!-- Barre du tuner -->
 <div id="tuner-bar">
-
 <div id="tuner-cursor"></div>
-
 </div>
 
+<!-- Notes affichées -->
 <div id="note-display"></div>
 
 <script src="app.js"></script>
