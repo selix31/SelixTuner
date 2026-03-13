@@ -1,118 +1,148 @@
-let currentInstrument = null;
+<!DOCTYPE html>
+<html lang="fr">
+<head>
 
-const popup = document.getElementById("popup");
-const instrumentMenu = document.getElementById("instrument-menu");
-const tunerBar = document.getElementById("tuner-bar");
-const cursor = document.getElementById("tuner-cursor");
-const noteDisplay = document.getElementById("note-display");
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-const guitarNotes = ["E", "A", "D", "G", "B", "E"];
-const ukuleleNotes = ["G", "C", "E", "A"];
+<title>Acadie Tuner</title>
 
-// Affiche les notes sur l’écran
-function renderNotes(instrument) {
-    noteDisplay.innerHTML = "";
-    let notes = instrument === "ukulele" ? ukuleleNotes : guitarNotes;
-    notes.forEach(note => {
-        let noteElem = document.createElement("span");
-        noteElem.className = "note";
-        noteElem.textContent = note;
-        noteDisplay.appendChild(noteElem);
-    });
+<style>
+
+body{
+font-family:sans-serif;
+background:#a9a9a9;
+margin:0;
+padding:0;
+text-align:center;
 }
 
-// ===== Listeners =====
-document.getElementById("btn-start").addEventListener("click", () => {
-    popup.style.display = "none";
-    instrumentMenu.style.display = "block";
-});
+/* POPUP */
 
-document.getElementById("btn-guitare").addEventListener("click", () => {
-    currentInstrument = "guitare";
-    tunerBar.style.display = "block";
-    renderNotes("guitare");
-    startTuner();
-});
-document.getElementById("btn-ukulele").addEventListener("click", () => {
-    currentInstrument = "ukulele";
-    tunerBar.style.display = "block";
-    renderNotes("ukulele");
-    startTuner();
-});
-
-// ===== Tuner avec micro =====
-let audioContext;
-let analyser;
-let dataArray;
-
-async function startTuner() {
-    if (audioContext) return;
-
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const source = audioContext.createMediaStreamSource(stream);
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-    source.connect(analyser);
-    dataArray = new Float32Array(analyser.fftSize);
-
-    requestAnimationFrame(updateTunerCursor);
+#popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+display:flex;
+align-items:center;
+justify-content:center;
 }
 
-// Convertit fréquence en note MIDI
-function frequencyToNote(freq) {
-    return 12 * (Math.log2(freq / 440)) + 69; // 440Hz = A4
+#popup-content{
+background:#d77b7b;
+padding:20px;
+border-radius:10px;
 }
 
-// Met à jour la position du curseur et la couleur des notes
-function updateTunerCursor() {
-    analyser.getFloatTimeDomainData(dataArray);
-
-    let peak = autoCorrelate(dataArray, audioContext.sampleRate);
-
-    if (peak !== -1) {
-        // Déviation du curseur (-1 à 1)
-        let deviation = Math.max(-1, Math.min(1, (peak - Math.round(peak))));
-        cursor.style.left = `${50 + deviation * 50}%`;
-
-        // Active note correspondante
-        const notes = noteDisplay.querySelectorAll(".note");
-        notes.forEach(n => {
-            n.classList.remove("active");
-            n.classList.remove("correct");
-        });
-
-        let nearestNoteIndex = Math.round(peak) % notes.length;
-        if (notes[nearestNoteIndex]) {
-            notes[nearestNoteIndex].classList.add("active");
-
-            // Si le curseur est proche du centre, la note est juste
-            if (Math.abs(deviation) < 0.05) {
-                notes[nearestNoteIndex].classList.add("correct");
-            }
-        }
-    }
-
-    requestAnimationFrame(updateTunerCursor);
+#btn-start{
+background:#e7e0e0;
+border:none;
+padding:10px 20px;
+border-radius:5px;
+cursor:pointer;
 }
 
-// ===== Auto-corrélation pour détecter la fréquence =====
-function autoCorrelate(buf, sampleRate) {
-    let SIZE = buf.length;
-    let rms = 0;
-    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
-    rms = Math.sqrt(rms / SIZE);
-    if (rms < 0.01) return -1;
+/* MENU */
 
-    let r = new Array(SIZE).fill(0);
-    for (let i = 0; i < SIZE; i++) {
-        for (let j = 0; j < SIZE - i; j++) r[i] += buf[j] * buf[j + i];
-    }
-
-    let d = 0; while (r[d] > r[d + 1]) d++;
-    let maxval = -1, maxpos = -1;
-    for (let i = d; i < SIZE; i++) {
-        if (r[i] > maxval) { maxval = r[i]; maxpos = i; }
-    }
-    return maxpos === -1 ? -1 : sampleRate / maxpos;
+#instrument-menu{
+display:none;
+margin:20px;
 }
+
+#instrument-menu button{
+margin:10px;
+padding:10px 20px;
+cursor:pointer;
+border-radius:5px;
+}
+
+/* TUNER */
+
+#tuner-bar{
+display:none;
+position:relative;
+margin:30px auto;
+background:#ebe6e6;
+height:25px;
+width:80%;
+border-radius:10px;
+}
+
+#tuner-cursor{
+position:absolute;
+height:25px;
+width:12px;
+background:#ff6666;
+border-radius:5px;
+left:50%;
+transform:translateX(-50%);
+transition:left 0.08s;
+}
+
+/* NOTES */
+
+#note-display{
+margin-top:25px;
+}
+
+.note{
+display:inline-block;
+padding:8px 12px;
+margin:5px;
+background:#fb8c8c;
+border-radius:5px;
+font-weight:bold;
+font-size:20px;
+}
+
+.note.active{
+background:#ff6666;
+color:white;
+}
+
+.note.correct{
+background:#4CAF50;
+color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="popup">
+<div id="popup-content">
+
+<h2>Bienvenue sur Acadie Tuner</h2>
+
+<p>Application créée par Martin Duguay</p>
+
+<button id="btn-start">Commencer</button>
+
+</div>
+</div>
+
+<div id="instrument-menu">
+
+<button id="btn-guitare">Guitare acoustique</button>
+
+<button id="btn-ukulele">Ukulélé</button>
+
+</div>
+
+<div id="tuner-bar">
+
+<div id="tuner-cursor"></div>
+
+</div>
+
+<div id="note-display"></div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
