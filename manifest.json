@@ -1,0 +1,15 @@
+{
+  "name": "Acadie Tuner",
+  "short_name": "Tuner",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f0f0f0",
+  "theme_color": "#ff6666",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
